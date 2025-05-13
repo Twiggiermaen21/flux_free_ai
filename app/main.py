@@ -54,8 +54,8 @@ if generate_button:
             st.error(f"Error: {e}")
 
         if image_path:
-            st.success(f"Image generated successfully and saved as {image_path}")
             st.image(image_path)
+            st.success(f"Image generated successfully and saved as {image_path}")
             upscale_image(image_path, "upscaled_" + image_path)
             st.success("Image upscaled to 300 DPI and saved.")
         else:
