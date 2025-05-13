@@ -36,7 +36,7 @@ def generate_messages(base_prompt: str) -> list:
     user_message = create_message("user", generate_detailed_prompt(base_prompt))
     return [system_message, user_message]
 
-def get_detailed_prompt_from_model( client, base_prompt: str, model: str = "meta-llama/Llama-3.3-70B-Instruct-Turbo-Free",  max_tokens: int = 1000, temperature: float = 1, stream: bool = True):
+def get_detailed_prompt_from_model( client, base_prompt: str, model: str = "meta-llama/Llama-3.3-70B-Instruct-Turbo-Free",  max_tokens: int = 100, temperature: float = 1, stream: bool = True):
     messages = generate_messages(base_prompt)
     response = client.chat.completions.create(
         model=model,
@@ -60,13 +60,13 @@ def get_detailed_prompt_from_model( client, base_prompt: str, model: str = "meta
         print(f"\nBłąd podczas generowania promptu: {e}")
         return ""
 
-def generate_image(client, prompt):
+def generate_image(client, prompt, width, height):
     response = client.images.generate(
         prompt=prompt,
         model="black-forest-labs/FLUX.1-schnell-Free",
-        width=1440,
-        height=1440,
-        steps=4,
+        width=width,
+        height=height,
+        steps=1,
         n=1,
         response_format="b64_json",
     )
@@ -102,6 +102,16 @@ st.session_state["base_prompt"] = st.text_input(
     value=st.session_state["base_prompt"], 
     key="base_prompt_key"
 )
+resolutions = {
+    "1:1 - 1440x1440 (Square)": (1440, 1440),
+    "3:2 - 1440x960": (1440, 960),
+    "16:9 - 1440x810": (1440, 810),
+    "2:1 - 1440x720": (1440, 720),
+    "5:4 - 1280x1024": (1280, 1024),
+}
+
+selected_resolution = st.selectbox("Select Resolution:", list(resolutions.keys()))
+width, height = resolutions[selected_resolution]
 base_prompt = st.session_state["base_prompt"]
 generate_button = st.button("Generate Image")
 
@@ -111,8 +121,7 @@ if generate_button:
             client = create_client()  
             detailed_prompt = get_detailed_prompt_from_model(client, base_prompt)
             if detailed_prompt:
-                image_path = generate_image(client, detailed_prompt)
-
+                image_path = generate_image(client, detailed_prompt, width, height)
         except Exception as e:
             print(f"Błąd: {e}")
 
