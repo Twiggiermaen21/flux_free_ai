@@ -2,6 +2,11 @@ import os
 import base64
 from together import Together
 from dotenv import load_dotenv
+import streamlit as st
+import os
+import base64
+from together import Together
+from dotenv import load_dotenv
 
 load_dotenv()
 
@@ -31,11 +36,7 @@ def generate_messages(base_prompt: str) -> list:
     user_message = create_message("user", generate_detailed_prompt(base_prompt))
     return [system_message, user_message]
 
-def get_detailed_prompt_from_model(
-    client, base_prompt: str, model: str = "meta-llama/Llama-3.3-70B-Instruct-Turbo-Free", 
-    max_tokens: int = 100, temperature: float = 1, stream: bool = True
-):
-   
+def get_detailed_prompt_from_model( client, base_prompt: str, model: str = "meta-llama/Llama-3.3-70B-Instruct-Turbo-Free",  max_tokens: int = 500, temperature: float = 1, stream: bool = True):
     messages = generate_messages(base_prompt)
     response = client.chat.completions.create(
         model=model,
@@ -44,7 +45,7 @@ def get_detailed_prompt_from_model(
         max_tokens=max_tokens,
         temperature=temperature
     )
-
+    detailed_prompt_container = st.empty()
     detailed_prompt = ""
 
     try:
@@ -52,12 +53,9 @@ def get_detailed_prompt_from_model(
             if hasattr(token, "choices"):
                 content = token.choices[0].delta.content if hasattr(token.choices[0].delta, "content") else ""
                 if content:
-                    print(content, end="", flush=True)
                     detailed_prompt += content
-
-        print("\n")  # Dla czytelności w konsoli po zakończeniu strumienia
+                    detailed_prompt_container.write(detailed_prompt)
         return detailed_prompt.strip()
-
     except Exception as e:
         print(f"\nBłąd podczas generowania promptu: {e}")
         return ""
@@ -94,21 +92,34 @@ def generate_image(client, prompt):
     print(f"Obraz zapisano jako {output_path}")
     return output_path
 
-def main():
-    try:
-        client = create_client()
+st.title("Prompt Generator and Image Creator")
+st.write("Generate a detailed prompt and an image using the Together API.")
+if "base_prompt" not in st.session_state:
+    st.session_state["base_prompt"] = "A futuristic city skyline at sunset"
 
-        baseprompt = "A futuristic cityscape at sunset"
-        print(f"Generowanie szczegółowego promptu dla: {baseprompt}")
+st.session_state["base_prompt"] = st.text_input(
+    "Enter a base prompt:", 
+    value=st.session_state["base_prompt"], 
+    key="base_prompt_key"
+)
 
-        detailed_prompt = get_detailed_prompt_from_model(client, baseprompt)
+st.write("Current base prompt:", st.session_state["base_prompt"])
+base_prompt = st.session_state["base_prompt"]
+generate_button = st.button("Generate Image")
 
-        if detailed_prompt:
-            output_path = generate_image(client, detailed_prompt)
-            print(f"Obraz wygenerowano i zapisano w: {output_path}")
+if generate_button:
+    with st.spinner("Generating image..."):
+        try:
+            client = create_client()  
+            detailed_prompt = get_detailed_prompt_from_model(client, base_prompt)
+            if detailed_prompt:
+                image_path = generate_image(client, detailed_prompt)
 
-    except Exception as e:
-        print(f"Błąd: {e}")
+        except Exception as e:
+            print(f"Błąd: {e}")
 
-if __name__ == "__main__":
-    main()
+        if image_path:
+            st.success(f"Image generated successfully and saved as {image_path}")
+            st.image(image_path)
+        else:
+            st.error("Failed to generate image.")
