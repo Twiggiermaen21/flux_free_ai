@@ -36,7 +36,7 @@ def generate_messages(base_prompt: str) -> list:
     user_message = create_message("user", generate_detailed_prompt(base_prompt))
     return [system_message, user_message]
 
-def get_detailed_prompt_from_model( client, base_prompt: str, model: str = "meta-llama/Llama-3.3-70B-Instruct-Turbo-Free",  max_tokens: int = 500, temperature: float = 1, stream: bool = True):
+def get_detailed_prompt_from_model( client, base_prompt: str, model: str = "meta-llama/Llama-3.3-70B-Instruct-Turbo-Free",  max_tokens: int = 1000, temperature: float = 1, stream: bool = True):
     messages = generate_messages(base_prompt)
     response = client.chat.completions.create(
         model=model,
@@ -102,8 +102,6 @@ st.session_state["base_prompt"] = st.text_input(
     value=st.session_state["base_prompt"], 
     key="base_prompt_key"
 )
-
-st.write("Current base prompt:", st.session_state["base_prompt"])
 base_prompt = st.session_state["base_prompt"]
 generate_button = st.button("Generate Image")
 
